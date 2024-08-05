@@ -1,11 +1,13 @@
 #include "platform.h"
 
 // Function to generate random entropy
-ErrorCode BIP39_GenerateEntropy(unsigned char *entropy, int bits) {
-    if (bits <= BIP39_MAX_ENTROPY_SIZE && bits % 32 == 0) {
-        RAND_bytes(entropy, bits / 8);
+ErrorCode BIP39_GenerateEntropy(unsigned char *entropy, int bits)
+{
+	if (bits <= BIP39_MAX_ENTROPY_SIZE && bits % 32 == 0) 
+	{
+		RAND_bytes(entropy, bits / 8);
 		return SUCCESS;
-    }
+	}
 	else
 	{
 		return ERROR_BIP39_INVALID_SIZE;
@@ -23,7 +25,7 @@ ErrorCode BIP39_ComputeChecksum(const unsigned char *entropy, int entropyBits, u
 
     memcpy(checksum, hash, fullBytes);
     if (remainingBits > 0) {
-        checksum[fullBytes] = hash[fullBytes] & (0xFF << (8 - remainingBits));
+    checksum[fullBytes] = hash[fullBytes] & (0xFF << (8 - remainingBits));
     }
 	return SUCCESS;
 }
@@ -47,7 +49,8 @@ ErrorCode BIP39_EntropyToMnemonic(const unsigned char *entropy, int bits, char *
 
     int words = totalBits / 11;
     mnemonic[0] = '\0';
-	if (words > BIP39_MAX_WORDS) return ERROR_BIP39_LIMITS_BYPASSED;
+	if (words > BIP39_MAX_WORDS) 
+		return ERROR_BIP39_LIMITS_BYPASSED;
 
     for (int i = 0; i < words; i++)
 	{
@@ -61,7 +64,8 @@ ErrorCode BIP39_EntropyToMnemonic(const unsigned char *entropy, int bits, char *
             index |= (entropyWithChecksum[byteIndex] >> (7 - bitInByte)) & 1;
         }
         strcat(mnemonic, wordlist[index]);
-        if (i < words - 1) strcat(mnemonic, " ");
+        if (i < words - 1)
+			strcat(mnemonic, " ");
     }
 	return SUCCESS;
 }
@@ -84,6 +88,7 @@ ErrorCode BIP39_MnemonicToEntropy(const char *mnemonic, unsigned char *entropy, 
     int checksumBits = totalBits - entropyBits;
     int entropyBytes = entropyBits / 8;
 
+	// TODO: ALLOC MAX_WORD_COUNT FOR OPTIMISAATION (STACK PROBLEM)
     unsigned char entropyWithChecksum[entropyBytes + 1];
     memset(entropyWithChecksum, 0, sizeof(entropyWithChecksum));
 
@@ -110,3 +115,66 @@ ErrorCode BIP39_MnemonicToEntropy(const char *mnemonic, unsigned char *entropy, 
 
     return SUCCESS;
 }
+
+ErrorCode BIP39_MnemonicToSeed(const char *mnemonic, const char *passphrase, unsigned char *seed) {
+    int passphraseLen = passphrase ? strlen(passphrase) : 0;
+    int saltLen = BIP39_SALTPREFIX_LEN + passphraseLen;
+    char *salt = (char *)malloc(saltLen + 1);
+    if (!salt)
+		return ERROR_BIP39;
+
+    strcpy(salt, BIP39_SALTPREFIX);
+    if (passphrase && passphraseLen > 0)
+	{
+        strcat(salt, passphrase);
+    }
+
+    // Using PBKDF2 with HMAC-SHA512
+    const int iterations = BIP39_SEED_PBKDF2_ITERATIONS;
+    const int keyLength = BIP39_SEED_LEN;
+    if (PKCS5_PBKDF2_HMAC(mnemonic, strlen(mnemonic), (unsigned char *)salt, saltLen, iterations, EVP_sha512(), keyLength, seed) == 0)
+	{
+        free(salt);
+        return ERROR_BIP39;
+    }
+
+    free(salt);
+    return SUCCESS;
+}
+
+
+ErrorCode BIP39_CheckMnemonicChecksum(const char *mnemonic) {
+    unsigned char entropy[BIP39_MAX_ENTROPY_SIZE / 8];
+    int entropyBits = 0;
+
+    // Convert mnemonic to entropy
+    ErrorCode result = BIP39_MnemonicToEntropy(mnemonic, entropy, &entropyBits);
+    if (result != SUCCESS) {
+        return result;
+    }
+
+    // Compute SHA-256 hash of the entropy
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(entropy, entropyBits / 8, hash);
+    
+    // Compute checksum from hash
+    int checksumBits = entropyBits / 32;
+    unsigned char computedChecksum = hash[0] >> (8 - checksumBits);  // Get the first 'checksumBits' from the hash
+
+    // Calculate expected checksum from the end bits of the binary representation derived from the mnemonic
+    unsigned char expectedChecksum = 0;
+    int bitIndex = entropyBits;  // Start from the end of the entropy bits
+    for (int i = 0; i < checksumBits; i++, bitIndex++) {
+        int byteIndex = bitIndex / 8;
+        int bitOffset = bitIndex % 8;
+        expectedChecksum <<= 1;
+        expectedChecksum |= (entropy[byteIndex] >> (7 - bitOffset)) & 1;
+    }
+
+    if (computedChecksum == expectedChecksum) {
+        return SUCCESS;
+    } else {
+        return ERROR_BIP39_INVALID_CHECKSUM;
+    }
+}
+

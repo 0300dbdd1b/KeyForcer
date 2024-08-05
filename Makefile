@@ -6,7 +6,7 @@ OBJ_DIR = obj
 BIN_DIR = bin
 
 CFLAGS = -Wall -Wextra -I$(INC_DIR)
-LDFLAGS = -lcrypto
+LDFLAGS = -lssl -lcrypto
 
 SRC_FILES = $(shell find $(SRC_DIR) -type f -name '*.c')
 
@@ -17,7 +17,7 @@ NAME = KeyForcer
 DARWIN_FLAGS =
 LINUX_FLAGS = 
 
-all: darwin
+all: linux
 
 darwin: CFLAGS += $(DARWIN_FLAGS)
 darwin: $(BIN_DIR)/$(NAME)
@@ -25,16 +25,18 @@ darwin: $(BIN_DIR)/$(NAME)
 linux: CFLAGS += $(LINUX_FLAGS)
 linux: $(BIN_DIR)/$(NAME)
 
-$(BIN_DIR)/$(NAME): $(OBJ_FILES)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(LDFLAGS) $^ -o $@
-
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BIN_DIR)/$(NAME): $(OBJ_FILES)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $^ -o $@ $(LDFLAGS)
+
 clean:
 	rm -rf $(OBJ_DIR)/*.o $(BIN_DIR)/$(NAME)
 
-.PHONY: all darwin linux clean
+re: clean all
+
+.PHONY: all darwin linux clean re
 

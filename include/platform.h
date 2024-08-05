@@ -21,6 +21,14 @@
 
 #ifdef PLATFORM_LINUX
     #include <unistd.h>
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <string.h>
+	#include <openssl/evp.h>
+	#include <openssl/rand.h>
+	#include <openssl/sha.h>
+
+	#include "BIP39.h"
 #endif
 
 #ifdef PLATFORM_DARWIN
