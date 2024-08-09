@@ -3,8 +3,12 @@
  #pragma GCC diagnostic ignored "-Wunused-variable"
  #include "errors.h"
 
+
+
+ #ifndef BIP39_MAX_ENTROPY_SIZE
+  #define BIP39_MAX_ENTROPY_SIZE  256
+ #endif
  #define BIP39_DICT_WORD_COUNT 2048
- #define BIP39_MAX_ENTROPY_SIZE  256
  #define BIP39_MAX_CHECKSUM_SIZE  (BIP39_MAX_ENTROPY_SIZE / 32)
  #define BIP39_MAX_WORDS  ((BIP39_MAX_ENTROPY_SIZE + BIP39_MAX_CHECKSUM_SIZE) / 11)
 
@@ -12,7 +16,7 @@
  #define BIP39_SALTPREFIX_LEN 8
  #define BIP39_SEED_LEN 64 // BIP39 seed in bytes
  #define BIP39_SEED_PBKDF2_ITERATIONS 2048
-
+ #define BIP39_TESTCOUNT 1000
  #if BIP39_MAX_ENTROPY_SIZE > 256
 	#warning "BIP39.h : Using entropy bigger than 256 bits is non-standard"
  #endif

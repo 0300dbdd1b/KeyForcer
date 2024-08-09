@@ -6,8 +6,8 @@ OBJ_DIR = obj
 BIN_DIR = bin
 
 # Base Flags
-BASE_CFLAGS = -Wall -Wextra -I$(INC_DIR)
-BASE_LDFLAGS = -lssl -lcrypto
+BASE_CFLAGS = -Wall -Wextra -fsanitize=address -g -I$(INC_DIR)
+BASE_LDFLAGS = -lssl -lcrypto -fsanitize=address -g
 
 # Platform-Specific Flags
 DARWIN_CFLAGS = $(BASE_CFLAGS)
@@ -16,7 +16,7 @@ DARWIN_LDFLAGS = $(BASE_LDFLAGS)
 LINUX_CFLAGS = $(BASE_CFLAGS)
 LINUX_LDFLAGS = $(BASE_LDFLAGS)
 
-TEST_CFLAGS = $(BASE_CFLAGS) -D__BIP39_TESTS__
+TEST_CFLAGS = $(BASE_CFLAGS) -DBIP39_MAX_ENTROPY_SIZE=512 -D__BIP39_TESTS__
 TEST_LDFLAGS = $(BASE_LDFLAGS)
 
 SRC_FILES = $(shell find $(SRC_DIR) -type f -name '*.c')
