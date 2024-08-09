@@ -6,7 +6,7 @@ const struct {
 	int entropyBits;
 	const char* mnemonic;
 	const char* seed;
-	int checksumValidity; // SUCCESS for valid, non-SUCCESS for invalid
+	ErrorCode checksumValidity; // SUCCESS for valid, non-SUCCESS for invalid
 } known_tests[] = {
 	{128, "crystal illegal yard make trouble sea traffic smooth flip remain gain shield", "92edbdf520174c0330c563f99b0936a6ce2c4c8f46ca26f2fc35bab6d692e590cfa2fbafde77b50cfba7d038d7bf91da2c4386d209ec14f34b83cc5466c3a190", SUCCESS},
 	{128, "floor exclude main dad lonely skin tilt multiply glue lyrics what autumn", "cbeb4746bcea3de8e28c3e8fb5de3e52c25944c18aa98e75fcae9433ec75752bfad70270e910ac67f79fce07719aad554b161654c03350b8f1a5b542a50e7cdb", SUCCESS},
@@ -18,7 +18,6 @@ ErrorCode BIP39_Tests() {
 	const int numTests = (int)(sizeof(testEntropyBits) / sizeof(testEntropyBits[0]));
 	for (int i = 0; i < BIP39_TESTCOUNT; i++){
 		for (int test = 0; test < numTests; test++) {
-			printf("%d\n", BIP39_MAX_WORDS);
 			int entropyBits = testEntropyBits[test];
 			unsigned char entropy[entropyBits / 8];
 			char mnemonic[BIP39_MAX_WORDS * 10];

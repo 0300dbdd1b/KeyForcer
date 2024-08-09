@@ -108,7 +108,7 @@ ErrorCode BIP39_MnemonicToEntropy(const char *mnemonic, unsigned char *entropy, 
         }
 
         if (index == -1) {
-            return ERROR_BIP39_INVALID_MNEMONIC;  // Word not found in dictionary
+            return ERROR_BIP39_INVALID_MNEMONIC;
         }
 
         for (int bit = 0; bit < 11; bit++) {
