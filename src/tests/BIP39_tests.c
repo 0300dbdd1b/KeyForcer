@@ -72,7 +72,7 @@ ErrorCode BIP39_Tests() {
 			}
 
 			// Assuming direct comparison (you'll need to implement actual seed comparison logic)
-			if (strcmp((char*)seed, known_tests[i].seed) != 0) {
+			if (strncmp((char*)seed, known_tests[i].seed, BIP39_SEED_LEN) != 0) {
 				fprintf(stderr, "Seed verification failed for mnemonic: %s\n", known_tests[i].mnemonic);
 				return 1;
 			}

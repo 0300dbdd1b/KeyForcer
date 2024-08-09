@@ -2,7 +2,7 @@
  #define __BIP39__
  #pragma GCC diagnostic ignored "-Wunused-variable"
  #include "errors.h"
-
+ #include "utils.h"
 
 
  #ifndef BIP39_MAX_ENTROPY_SIZE
