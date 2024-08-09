@@ -1,4 +1,5 @@
 #include "platform.h"
+#include <stdio.h>
 
 // Function to generate random entropy
 ErrorCode BIP39_GenerateEntropy(unsigned char *entropy, int bits)
@@ -35,9 +36,7 @@ ErrorCode BIP39_EntropyToMnemonic(const unsigned char *entropy, int bits, char *
     int totalBits = bits + checksumBits;
     int entropyBytes = bits / 8;
     int checksumBytes = (checksumBits + 7) / 8; // Round up to the nearest byte
-
-    unsigned char checksum[checksumBytes];
-    BIP39_ComputeChecksum(entropy, bits, checksum);
+unsigned char checksum[checksumBytes]; BIP39_ComputeChecksum(entropy, bits, checksum);
 
     // Combine entropy and checksum into a single buffer
     unsigned char entropyWithChecksum[entropyBytes + checksumBytes];
@@ -70,11 +69,19 @@ ErrorCode BIP39_EntropyToMnemonic(const unsigned char *entropy, int bits, char *
 	return SUCCESS;
 }
 
+
+
+
 ErrorCode BIP39_MnemonicToEntropy(const char *mnemonic, unsigned char *entropy, int *bits) {
     char *words[BIP39_MAX_WORDS];
     int word_count = 0;
-    char *token = strtok((char *)mnemonic, " ");
-    while (token != NULL) {
+
+    // Copy the mnemonic to a local buffer to avoid modifying the original string
+    char mnemonicCopy[strlen(mnemonic) + 1];
+    strcpy(mnemonicCopy, mnemonic);
+
+    char *token = strtok(mnemonicCopy, " ");
+    while (token != NULL && word_count < BIP39_MAX_WORDS) {
         words[word_count++] = token;
         token = strtok(NULL, " ");
     }
@@ -88,17 +95,20 @@ ErrorCode BIP39_MnemonicToEntropy(const char *mnemonic, unsigned char *entropy, 
     int checksumBits = totalBits - entropyBits;
     int entropyBytes = entropyBits / 8;
 
-	// TODO: ALLOC MAX_WORD_COUNT FOR OPTIMISAATION (STACK PROBLEM)
     unsigned char entropyWithChecksum[entropyBytes + 1];
     memset(entropyWithChecksum, 0, sizeof(entropyWithChecksum));
 
     for (int i = 0; i < word_count; i++) {
-        int index = 0;
+        int index = -1;
         for (int j = 0; j < BIP39_DICT_WORD_COUNT; j++) {
             if (strcmp(words[i], wordlist[j]) == 0) {
                 index = j;
                 break;
             }
+        }
+
+        if (index == -1) {
+            return ERROR_BIP39_INVALID_MNEMONIC;  // Word not found in dictionary
         }
 
         for (int bit = 0; bit < 11; bit++) {
@@ -116,6 +126,10 @@ ErrorCode BIP39_MnemonicToEntropy(const char *mnemonic, unsigned char *entropy, 
     return SUCCESS;
 }
 
+
+
+
+
 ErrorCode BIP39_MnemonicToSeed(const char *mnemonic, const char *passphrase, unsigned char *seed) {
     int passphraseLen = passphrase ? strlen(passphrase) : 0;
     int saltLen = BIP39_SALTPREFIX_LEN + passphraseLen;
@@ -129,7 +143,6 @@ ErrorCode BIP39_MnemonicToSeed(const char *mnemonic, const char *passphrase, uns
         strcat(salt, passphrase);
     }
 
-    // Using PBKDF2 with HMAC-SHA512
     const int iterations = BIP39_SEED_PBKDF2_ITERATIONS;
     const int keyLength = BIP39_SEED_LEN;
     if (PKCS5_PBKDF2_HMAC(mnemonic, strlen(mnemonic), (unsigned char *)salt, saltLen, iterations, EVP_sha512(), keyLength, seed) == 0)
@@ -142,39 +155,26 @@ ErrorCode BIP39_MnemonicToSeed(const char *mnemonic, const char *passphrase, uns
     return SUCCESS;
 }
 
-
 ErrorCode BIP39_CheckMnemonicChecksum(const char *mnemonic) {
     unsigned char entropy[BIP39_MAX_ENTROPY_SIZE / 8];
-    int entropyBits = 0;
-
-    // Convert mnemonic to entropy
+    int entropyBits;
     ErrorCode result = BIP39_MnemonicToEntropy(mnemonic, entropy, &entropyBits);
-    if (result != SUCCESS) {
+    if (result != SUCCESS)
         return result;
-    }
 
-    // Compute SHA-256 hash of the entropy
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256(entropy, entropyBits / 8, hash);
-    
-    // Compute checksum from hash
     int checksumBits = entropyBits / 32;
-    unsigned char computedChecksum = hash[0] >> (8 - checksumBits);  // Get the first 'checksumBits' from the hash
+    unsigned char computedChecksum[(checksumBits + 7) / 8];
+    BIP39_ComputeChecksum(entropy, entropyBits, computedChecksum);
 
-    // Calculate expected checksum from the end bits of the binary representation derived from the mnemonic
-    unsigned char expectedChecksum = 0;
-    int bitIndex = entropyBits;  // Start from the end of the entropy bits
-    for (int i = 0; i < checksumBits; i++, bitIndex++) {
-        int byteIndex = bitIndex / 8;
-        int bitOffset = bitIndex % 8;
-        expectedChecksum <<= 1;
-        expectedChecksum |= (entropy[byteIndex] >> (7 - bitOffset)) & 1;
+    unsigned char mnemonicChecksum[(checksumBits + 7) / 8];
+    BIP39_ComputeChecksum(entropy, entropyBits, mnemonicChecksum);
+
+    for (int i = 0; i < (checksumBits + 7) / 8; i++)
+	{
+        if (computedChecksum[i] != mnemonicChecksum[i])
+            return ERROR_BIP39_INVALID_MNEMONIC;
     }
 
-    if (computedChecksum == expectedChecksum) {
-        return SUCCESS;
-    } else {
-        return ERROR_BIP39_INVALID_CHECKSUM;
-    }
+    return SUCCESS;
 }
 

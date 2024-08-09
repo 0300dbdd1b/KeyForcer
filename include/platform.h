@@ -29,6 +29,7 @@
 	#include <openssl/sha.h>
 
 	#include "BIP39.h"
+	#include "BIP32.h"
 #endif
 
 #ifdef PLATFORM_DARWIN
@@ -41,6 +42,7 @@
 	#include <openssl/sha.h>
 
 	#include "BIP39.h"
+	#include "BIP32.h"
 #endif
 
 
